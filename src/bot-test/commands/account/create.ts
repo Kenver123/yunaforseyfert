@@ -1,5 +1,5 @@
 import { type CommandContext, Declare, Group, LimitedCollection, Options, SubCommand, createStringOption } from "seyfert";
-import { Shortcut } from "../../../package/utils/commandsResolver/decorators";
+import { Shortcut, SubCommandPrefix } from "../../../package/utils/commandsResolver/decorators";
 
 const options = {
     pengu: createStringOption({
@@ -16,6 +16,14 @@ const options = {
 @Options(options)
 @Group("pengu")
 @Shortcut()
+// Auto-gen (parent + group + sub):
+//   "account-pengu-create", "pinwino-pengu-create",
+//   "account-pingu-create", "account-pengu-cr", ...  (all alias cross-products)
+// @SubCommandPrefix()
+//
+// Custom name — use exactly "acc-create":
+// @SubCommandPrefix({ name: "acc-create" })
+@SubCommandPrefix()
 export default class CreateCommand extends SubCommand {
     run(ctx: CommandContext<typeof options>) {
         // some logic there

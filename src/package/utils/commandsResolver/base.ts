@@ -2,7 +2,7 @@ import type { Command, ContextMenuCommand, SubCommand } from "seyfert";
 import { IgnoreCommand } from "seyfert";
 import { ApplicationCommandOptionType, ApplicationCommandType } from "seyfert/lib/types";
 import { type AvailableClients, Keys, type YunaCommandUsable, type YunaGroupType } from "../../things";
-import { type GroupLink, ShortcutType, type UseYunaCommandsClient, type YunaGroup } from "./prepare";
+import { type GroupLink, type PrefixLink, ShortcutType, type UseYunaCommandsClient, type YunaGroup } from "./prepare";
 import type { SearchPlugin, YunaCommandsResolverConfig } from "./resolver";
 
 type UseableCommand = Command | SubCommand;
@@ -73,6 +73,7 @@ export function baseResolver(
     const shortcut =
         (parentCommand ? undefined : metadata?.shortcuts.find(searchFn)) ?? plugin?.findShortcut?.(parent, metadata?.shortcuts);
     const isGroupShortcut = shortcut?.type === ShortcutType.Group;
+    const isPrefixShortcut = shortcut?.type === ShortcutType.Prefix;
 
     if (!(parentCommand || shortcut)) return;
 
@@ -89,6 +90,20 @@ export function baseResolver(
     if (isGroupShortcut) {
         parentCommand = shortcut.parent;
         [parent, group, sub] = [shortcut.parent.name, parent, group];
+        // when is a prefix shortcut: resolve directly to the stored subCommand
+    } else if (isPrefixShortcut) {
+        const prefixLink = shortcut as unknown as PrefixLink;
+
+        if (!availableInMessage(prefixLink.parent as YunaCommandUsable)) return;
+        if (!availableInMessage(prefixLink.subCommand as YunaCommandUsable)) return;
+
+        return config
+            ? {
+                  parent: prefixLink.parent,
+                  command: prefixLink.subCommand,
+                  endPad: getPadEnd(0),
+              }
+            : prefixLink.subCommand;
         // when is shortcut or is known when command doesnt have sub commands
     } else if (shortcut || (parentCommand && parentSubCommandsMetadata === null)) {
         const Shortcut = shortcut as SubCommand | undefined;

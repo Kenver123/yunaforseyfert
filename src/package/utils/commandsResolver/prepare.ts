@@ -19,6 +19,7 @@ export type UseYunaCommandsClient<ClientType extends BaseClient = BaseClient> = 
 export const ShortcutType = {
     // biome-ignore lint/style/useNamingConvention: i want
     Group: Symbol(),
+    Prefix: Symbol(),
 };
 export type YunaGroup = YunaGroupType & {
     [Keys.resolverFallbackSubCommand]?: string;
@@ -32,6 +33,22 @@ export interface GroupLink {
     fallbackSubCommandName?: string;
     fallbackSubCommand?: Instantiable<SubCommand> | null | string;
     type: typeof ShortcutType.Group;
+}
+
+export interface PrefixLink {
+    /**
+     * The fused name, e.g. "account-create" (parentName + separator + subName).
+     * This is the primary alias used to match the command.
+     */
+    name: string;
+    /**
+     * All additional fused aliases, generated from every combination of
+     * parent aliases × sub aliases (e.g. ["acc-create", "account-cr", "acc-cr"]).
+     */
+    aliases?: string[];
+    parent: Command;
+    subCommand: SubCommand;
+    type: typeof ShortcutType.Prefix;
 }
 
 export const addCommandsEvents = <ClientType extends BaseClient>(client: ClientType) => {
@@ -112,7 +129,66 @@ export async function prepareCommands<ClientType extends BaseClient>(client: Cli
             if (!(sub instanceof SubCommand)) continue;
             hasSubCommands = true;
             sub.parent = command;
-            if ((sub as YunaCommandUsable)[Keys.resolverIsShortcut] === true) metadata.shortcuts.push(sub);
+
+            const yunaSubCommand = sub as YunaCommandUsable;
+
+            if (yunaSubCommand[Keys.resolverIsShortcut] === true) metadata.shortcuts.push(sub);
+
+            if (yunaSubCommand[Keys.resolverIsSubCommandPrefix] === true) {
+                const separator = yunaSubCommand[Keys.resolverSubCommandPrefixSeparator] ?? "-";
+                const customName = yunaSubCommand[Keys.resolverSubCommandPrefixName];
+
+                let primaryName: string;
+                let aliases: string[] | undefined;
+
+                if (customName) {
+                    // Custom name provided — use it exactly, no alias cross-products
+                    primaryName = customName;
+                } else {
+                    // Auto-generate: parentName + [groupName +] subName cross-product
+                    const parentNames = [command.name, ...(command.aliases ?? [])];
+                    const subNames = [sub.name, ...(sub.aliases ?? [])];
+
+                    // If the subcommand belongs to a group, include its name + group aliases
+                    const groupName = sub.group;
+                    const groupAliases = groupName ? [groupName, ...(command.groups?.[groupName]?.aliases ?? [])] : undefined;
+
+                    const buildFused = (pName: string, sName: string, gName?: string) =>
+                        gName ? `${pName}${separator}${gName}${separator}${sName}` : `${pName}${separator}${sName}`;
+
+                    primaryName = buildFused(command.name, sub.name, groupName);
+
+                    // Generate all other cross-product combinations as aliases
+                    const allAliases: string[] = [];
+                    for (const pName of parentNames) {
+                        if (groupAliases) {
+                            for (const gName of groupAliases) {
+                                for (const sName of subNames) {
+                                    const fused = buildFused(pName, sName, gName);
+                                    if (fused !== primaryName) allAliases.push(fused);
+                                }
+                            }
+                        } else {
+                            for (const sName of subNames) {
+                                const fused = buildFused(pName, sName);
+                                if (fused !== primaryName) allAliases.push(fused);
+                            }
+                        }
+                    }
+                    aliases = allAliases.length ? allAliases : undefined;
+                }
+
+                const prefixLink: PrefixLink = {
+                    name: primaryName,
+                    aliases,
+                    parent: command,
+                    subCommand: sub,
+                    type: ShortcutType.Prefix,
+                };
+
+                metadata.shortcuts.push(prefixLink as unknown as SubCommand);
+            }
+
             onSubCommand?.call(client, sub);
         }
 

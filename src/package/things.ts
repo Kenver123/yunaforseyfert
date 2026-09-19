@@ -11,6 +11,9 @@ export class Keys {
 
     static readonly resolverSubCommands = Symbol("Subcommands");
     static readonly resolverIsShortcut = Symbol("IsShortcut");
+    static readonly resolverIsSubCommandPrefix = Symbol("IsSubCommandPrefix");
+    static readonly resolverSubCommandPrefixSeparator = Symbol("SubCommandPrefixSeparator");
+    static readonly resolverSubCommandPrefixName = Symbol("SubCommandPrefixName");
     /** fallbackSubcommandName */
     static readonly resolverFallbackSubCommand = Symbol("FallbackSubcommandName");
 
@@ -48,6 +51,9 @@ export type YunaCommandUsable<T extends CommandUsable = CommandUsable> = T & {
     [Keys.parserConfig]?: YunaParserCreateOptions;
     [Keys.resolverSubCommands]?: { fallback?: Instantiable<SubCommand> | null; fallbackName?: string } | null;
     [Keys.resolverIsShortcut]?: boolean;
+    [Keys.resolverIsSubCommandPrefix]?: boolean;
+    [Keys.resolverSubCommandPrefixSeparator]?: string;
+    [Keys.resolverSubCommandPrefixName]?: string;
 
     constructor: {
         prototype: {
