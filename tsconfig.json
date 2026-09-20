@@ -33,10 +33,10 @@
     },
     "exclude": [
         "node_modules",
+        "build",
         "src/package/lib/prepublish.mts",
-        "src/**/*"
     ],
     "include": [
-        "build"
+        "src/**/*"
     ],
 }
