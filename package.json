@@ -37,12 +37,12 @@
         "MessageWatcher",
         "seyfert"
     ],
-    "author": "SagiriIkeda",
+    "author": "Kenver123",
     "license": "ISC",
-    "homepage": "https://github.com/SagiriIkeda/yunaforseyfert#readme",
+    "homepage": "https://github.com/Kenver123/yunaforseyfert#readme",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/SagiriIkeda/yunaforseyfert.git"
+        "url": "git+https://github.com/Kenver123/yunaforseyfert.git"
     },
     "lint-staged": {
         "*.ts": [
